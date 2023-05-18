@@ -30,27 +30,26 @@ class CRUMB(data.Dataset):
             downloaded again.
     """
 
-    base_folder = 'CRUMB_batches'
+     base_folder = 'CRUMB_batches'
     url = "http://www.jb.man.ac.uk/research/MiraBest/CRUMB/CRUMB_batches.tar.gz" 
     filename = "CRUMB_batches.tar.gz"
-    tgz_md5 = '3d9d832802c0f687763d926d103fbc4e'
+    tgz_md5 = 'a33c0564b99d66fb825e224a0392bc78'
     train_list = [
-                  ['data_batch_1', 'dcc1473fbe481ed3fb1454e29ad27a9a'],
-                  ['data_batch_2', '49b5a49317ea700d5dfbd9e3339dc66a'],
-                  ['data_batch_3', 'c720be4e97209c718a9888d0dfde15dd'],
-                  ['data_batch_4', 'a8ea5c2b267fd380c34468fc4ca201bf'],
-                  ['data_batch_5', 'bca25ad0ae585401f5e873ffe81a20b3'],
-                  ['data_batch_6', '9803502f33bb17e51d1f401c753fb22a'],
-                  ['data_batch_7', 'ce15a4e7774b7e2cd3800e4fe23448e4'],
+                  ['data_batch_1', '004e97220b29da803cf67e762ade4b52'],
+                  ['data_batch_2', 'a05122141382c3ccec5d5c717a582b16'],
+                  ['data_batch_3', 'aada5e8eab52732b3d171b158081bfa7'],
+                  ['data_batch_4', 'ebc353fb9059dbeb44da28a50e6092bc'],
+                  ['data_batch_5', '5d9459f61a710b27b3a790d3686fb14d'],
+                  ['data_batch_6', '965c62bfff96acf83245e68ca42e0c10'],
                   ]
 
     test_list = [
-                 ['test_batch', '9b26d7b1be5752ddc8e8edbfa375b319'],
+                 ['test_batch', '0cd9c3869700b720f4adcadba79d793c'],
                  ]
     meta = {
                 'filename': 'batches.meta',
                 'key': 'label_names',
-                'md5': '7659fd212e8c275f1c0e7053676e373b',
+                'md5': '58f77558538ea5cd398fea6300201332',
                 }
 
 
@@ -177,3 +176,35 @@ class CRUMB(data.Dataset):
         tmp = '    Target Transforms (if any): '
         fmt_str += '{0}{1}'.format(tmp, self.target_transform.__repr__().replace('\n', '\n' + ' ' * len(tmp)))
         return fmt_str
+    
+# ---------------------------------------------------------------------------------
+
+class Not_MB(CRUMB):
+    
+    """
+    Child class to load only sources not found in MiraBest or MB Hybrid
+    """
+    
+    def __init__(self, *args, **kwargs):
+        super(Not_MB, self).__init__(*args, **kwargs)
+        
+        #Only include sources which register "not present" for both MB (column 0) and Hyb (column 3)
+        
+        if self.train:
+            full_labels = np.array(self.complete_labels)
+            include = np.squeeze(np.where(np.logical_and(np.transpose(full_labels)[0] == -1, 
+                                                         np.transpose(full_labels)[3] == -1)))
+            targets = np.array(self.targets)
+            self.data = self.data[include]
+            self.targets = targets[include].tolist()
+            self.complete_labels = full_labels[include].tolist()
+            
+        else:
+            
+            full_labels = np.array(self.complete_labels)
+            include = np.squeeze(np.where(np.logical_and(np.transpose(full_labels)[0] == -1, 
+                                                      np.transpose(full_labels)[3] == -1)))
+            targets = np.array(self.targets)
+            self.data = self.data[include]
+            self.targets = targets[include].tolist()
+            self.complete_labels = full_labels[include].tolist()
