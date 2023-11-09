@@ -30,7 +30,7 @@ class CRUMB(data.Dataset):
             downloaded again.
     """
 
-     base_folder = 'CRUMB_batches'
+    base_folder = 'CRUMB_batches'
     url = "http://www.jb.man.ac.uk/research/MiraBest/CRUMB/CRUMB_batches.tar.gz" 
     filename = "CRUMB_batches.tar.gz"
     tgz_md5 = 'a33c0564b99d66fb825e224a0392bc78'
@@ -53,11 +53,12 @@ class CRUMB(data.Dataset):
                 }
 
 
-    def __init__(self, root, train=True,
+    def __init__(self, root, labels='basic', train=True,
                  transform=None, target_transform=None,
                  download=False):
 
         self.root = os.path.expanduser(root)
+        self.labels = labels
         self.transform = transform
         self.target_transform = target_transform
         self.train = train  # training set or test set
@@ -88,6 +89,11 @@ class CRUMB(data.Dataset):
                     entry = pickle.load(f)
                 else:
                     entry = pickle.load(f, encoding='latin1')
+                
+                # filename contains the full path; this cuts it down to just the coords
+                for i in range(300):
+                    
+                    entry['filenames'][i] = entry['filenames'][i][31:]
 
                 self.data.append(entry['data'])
                 if 'labels' in entry:
@@ -95,9 +101,9 @@ class CRUMB(data.Dataset):
                     self.filenames.extend(entry['filenames'])
                     self.complete_labels.extend(entry['complete_labels'])
                 else:
-                    self.targets.extend(entry['fine_labels'])
+                    self.targets.extend(entry['fine_labels']) 
                     self.filenames.extend(entry['filenames'])
-                    self.filenames.extend(entry['complete_labels'])
+                    self.complete_labels.extend(entry['complete_labels'])
 
 
         self.data = np.vstack(self.data).reshape(-1, 1, 150, 150)
@@ -176,17 +182,392 @@ class CRUMB(data.Dataset):
         tmp = '    Target Transforms (if any): '
         fmt_str += '{0}{1}'.format(tmp, self.target_transform.__repr__().replace('\n', '\n' + ' ' * len(tmp)))
         return fmt_str
+
+# ---------------------------------------------------------------------------------
+
+class CRUMB_MB(CRUMB):
+    
+    """
+    Child class to load only sources found in MiraBest
+    Flag included to load either basic labels or original labels from dataset
+    """
+    
+    def __init__(self, *args, **kwargs):
+        super(CRUMB_MB, self).__init__(*args, **kwargs)
+        
+        #Only include sources which register "present" for MB (column 0)
+        
+        if self.train:
+            full_labels = np.array(self.complete_labels)
+            include = np.squeeze(np.where(np.transpose(full_labels)[0] != -1))
+            
+            targets = np.array(self.targets)
+            self.data = self.data[include]
+            self.filenames = list(self.filenames[i] for i in include)
+            self.complete_labels = full_labels[include].tolist()
+            
+            if self.labels == 'basic':
+                
+                self.targets = targets[include].tolist()
+            
+            elif self.labels == 'original':
+                
+                original_labels = np.transpose(np.transpose(full_labels)[0][include])
+                self.targets = original_labels.tolist()
+                
+            else:
+                
+                print('Invalid label choice. Please select either \'basic\' for default CRUMB labels or \'original\' for MB labels.')
+            
+        else:
+            
+            full_labels = np.array(self.complete_labels)
+            include = np.squeeze(np.where(np.transpose(full_labels)[0] != -1))
+            
+            targets = np.array(self.targets)
+            self.data = self.data[include]
+            self.filenames = list(self.filenames[i] for i in include)
+            self.complete_labels = full_labels[include].tolist()
+            
+            if self.labels == 'basic':
+                
+                self.targets = targets[include].tolist()
+            
+            elif self.labels == 'original':
+                
+                original_labels = np.transpose(np.transpose(full_labels)[0][include])
+                self.targets = original_labels.tolist()
+                
+            else:
+                
+                print('Invalid label choice. Please select either \'basic\' for default CRUMB labels or \'original\' for MB labels.')
+
+# ---------------------------------------------------------------------------------
+
+class CRUMB_FRDEEP(CRUMB):
+    
+    """
+    Child class to load only sources found in FRDEEP
+    """
+    
+    def __init__(self, *args, **kwargs):
+        super(CRUMB_FRDEEP, self).__init__(*args, **kwargs)
+        
+        #Only include sources which register "present" for FRDEEP (column 1)
+        
+        if self.train:
+            full_labels = np.array(self.complete_labels)
+            include = np.squeeze(np.where(np.transpose(full_labels)[1] != -1))
+            
+            targets = np.array(self.targets)
+            self.data = self.data[include]
+            self.filenames = list(self.filenames[i] for i in include)
+            self.complete_labels = full_labels[include].tolist()
+            
+            if self.labels == 'basic':
+                
+                self.targets = targets[include].tolist()
+            
+            elif self.labels == 'original':
+                
+                original_labels = np.transpose(np.transpose(full_labels)[0][include])
+                self.targets = original_labels.tolist()
+                
+            else:
+                
+                print('Invalid label choice. Please select either \'basic\' for default CRUMB labels or \'original\' for FR-DEEP labels.')
+            
+        else:
+            
+            full_labels = np.array(self.complete_labels)
+            include = np.squeeze(np.where(np.transpose(full_labels)[1] != -1))
+            
+            targets = np.array(self.targets)
+            self.data = self.data[include]
+            self.filenames = list(self.filenames[i] for i in include)
+            self.complete_labels = full_labels[include].tolist()
+            
+            if self.labels == 'basic':
+                
+                self.targets = targets[include].tolist()
+            
+            elif self.labels == 'original':
+                
+                original_labels = np.transpose(np.transpose(full_labels)[0][include])
+                self.targets = original_labels.tolist()
+                
+            else:
+                
+                print('Invalid label choice. Please select either \'basic\' for default CRUMB labels or \'original\' for FR-DEEP labels.')
+            
+# ---------------------------------------------------------------------------------
+
+class CRUMB_AT17(CRUMB):
+    
+    """
+    Child class to load only sources found in AT17
+    """
+    
+    def __init__(self, *args, **kwargs):
+        super(CRUMB_AT17, self).__init__(*args, **kwargs)
+        
+        #Only include sources which register "present" for AT17 (column 2)
+        
+        if self.train:
+            full_labels = np.array(self.complete_labels)
+            include = np.squeeze(np.where(np.transpose(full_labels)[2] != -1))
+            
+            targets = np.array(self.targets)
+            self.data = self.data[include]
+            self.filenames = list(self.filenames[i] for i in include)
+            self.complete_labels = full_labels[include].tolist()
+            
+            if self.labels == 'basic':
+                
+                self.targets = targets[include].tolist()
+            
+            elif self.labels == 'original':
+                
+                original_labels = np.transpose(np.transpose(full_labels)[0][include])
+                self.targets = original_labels.tolist()
+                
+            else:
+                
+                print('Invalid label choice. Please select either \'basic\' for default CRUMB labels or \'original\' for AT17 labels.')
+            
+        else:
+            
+            full_labels = np.array(self.complete_labels)
+            include = np.squeeze(np.where(np.transpose(full_labels)[2] != -1))
+            
+            targets = np.array(self.targets)
+            self.data = self.data[include]
+            self.filenames = list(self.filenames[i] for i in include)
+            self.complete_labels = full_labels[include].tolist()
+            
+            if self.labels == 'basic':
+                
+                self.targets = targets[include].tolist()
+            
+            elif self.labels == 'original':
+                
+                original_labels = np.transpose(np.transpose(full_labels)[0][include])
+                self.targets = original_labels.tolist()
+                
+            else:
+                
+                print('Invalid label choice. Please select either \'basic\' for default CRUMB labels or \'original\' for AT17 labels.')
     
 # ---------------------------------------------------------------------------------
 
-class Not_MB(CRUMB):
+class CRUMB_MBHyb(CRUMB):
+    
+    """
+    Child class to load only sources found in MiraBest
+    """
+    
+    def __init__(self, *args, **kwargs):
+        super(CRUMB_MBHyb, self).__init__(*args, **kwargs)
+        
+        #Only include sources which register "present" for MB-Hyb (column 3)
+        
+        if self.train:
+            full_labels = np.array(self.complete_labels)
+            include = np.squeeze(np.where(np.transpose(full_labels)[3] != -1))
+            
+            targets = np.array(self.targets)
+            self.data = self.data[include]
+            self.filenames = list(self.filenames[i] for i in include)
+            self.complete_labels = full_labels[include].tolist()
+            
+            if self.labels == 'basic':
+                
+                self.targets = targets[include].tolist()
+            
+            elif self.labels == 'original':
+                
+                original_labels = np.transpose(np.transpose(full_labels)[0][include])
+                self.targets = original_labels.tolist()
+                
+            else:
+                
+                print('Invalid label choice. Please select either \'basic\' for default CRUMB labels or \'original\' for MB-Hyb labels.')
+            
+        else:
+            
+            full_labels = np.array(self.complete_labels)
+            include = np.squeeze(np.where(np.transpose(full_labels)[3] != -1))
+            
+            targets = np.array(self.targets)
+            self.data = self.data[include]
+            self.filenames = list(self.filenames[i] for i in include)
+            self.complete_labels = full_labels[include].tolist()
+            
+            if self.labels == 'basic':
+                
+                self.targets = targets[include].tolist()
+            
+            elif self.labels == 'original':
+                
+                original_labels = np.transpose(np.transpose(full_labels)[0][include])
+                self.targets = original_labels.tolist()
+                
+            else:
+                
+                print('Invalid label choice. Please select either \'basic\' for default CRUMB labels or \'original\' for MB-Hyb labels.')
+    
+# ---------------------------------------------------------------------------------
+
+class CRUMB_CoMBo(CRUMB):
+    
+    """
+    Child class to load "combo" of sources in MiraBest and MB Hybrid
+    MiraBest labels take precedent over MB Hybrid labels by default
+    """
+    
+    def __init__(self, *args, **kwargs):
+        super(CRUMB_CoMBo, self).__init__(*args, **kwargs)
+        
+        #Include sources which register "present" for MB (column 0) or MB Hyb (column 3)
+        
+        if self.train:
+            full_labels = np.array(self.complete_labels)
+            include = np.squeeze(np.where(np.logical_or(np.transpose(full_labels)[0] != -1, 
+                                                         np.transpose(full_labels)[3] != -1)))
+            
+            targets = np.array(self.targets)
+            self.data = self.data[include]
+            self.filenames = list(self.filenames[i] for i in include)
+            self.complete_labels = full_labels[include].tolist()
+            
+            if self.labels == 'basic':
+                
+                self.targets = targets[include].tolist()
+            
+            elif self.labels == 'MB':
+                
+                MB_labels = np.transpose(full_labels)[0][include]
+                MBHyb_labels = np.transpose(full_labels)[3][include]
+                
+                combined_labels = np.zeros(len(include))
+                
+                for i in range(len(include)):
+                    
+                    if MB_labels[i] != -1:
+                        
+                        combined_labels[i] = MB_labels[i]
+                        
+                    elif MBHyb_labels[i] == 0:
+                        
+                        combined_labels[i] = 8
+                        
+                    else:
+                        
+                        combined_labels[i] = 9
+                
+                self.targets = combined_labels.astype(int).tolist()
+                
+            elif self.labels == 'MBHyb':
+                
+                MB_labels = np.transpose(np.transpose(full_labels)[0][include])
+                MBHyb_labels = np.transpose(np.transpose(full_labels)[3][include])
+                
+                combined_labels = np.zeros(len(include))
+                
+                for i in range(len(include)):
+                    
+                    if MBHyb_labels[i] == 0:
+                        
+                        combined_labels[i] = 8
+                        
+                    elif MBHyb_labels[i] == 1:
+                        
+                        combined_labels[i] = 9
+                        
+                    else:
+                        
+                        combined_labels[i] = MB_labels[i]
+                
+                self.targets = combined_labels.astype(int).tolist()
+                
+            else:
+                
+                print('Invalid label choice. Please select either \'basic\' for default CRUMB labels, \'MB\' to prioritise MB labels in case of disagreement, or \'MBHyb\' to prioritise MBHyb labels in case of disagreement.')
+            
+        else:
+            
+            full_labels = np.array(self.complete_labels)
+            include = np.squeeze(np.where(np.transpose(full_labels)[0] != -1))
+            
+            targets = np.array(self.targets)
+            self.data = self.data[include]
+            self.filenames = list(self.filenames[i] for i in include)
+            self.complete_labels = full_labels[include].tolist()
+            
+            if self.labels == 'basic':
+                
+                self.targets = targets[include].tolist()
+            
+            elif self.labels == 'MB':
+                
+                MB_labels = np.transpose(full_labels)[0][include]
+                MBHyb_labels = np.transpose(full_labels)[3][include]
+                
+                combined_labels = np.zeros(len(include))
+                
+                for i in range(len(include)):
+                    
+                    if MB_labels[i] != -1:
+                        
+                        combined_labels[i] = MB_labels[i]
+                        
+                    elif MBHyb_labels[i] == 0:
+                        
+                        combined_labels[i] = 8
+                        
+                    else:
+                        
+                        combined_labels[i] = 9
+                
+                self.targets = combined_labels.astype(int).tolist()
+                
+            elif self.labels == 'MBHyb':
+                
+                MB_labels = np.transpose(np.transpose(full_labels)[0][include])
+                MBHyb_labels = np.transpose(np.transpose(full_labels)[3][include])
+                
+                combined_labels = np.zeros(len(include))
+                
+                for i in range(len(include)):
+                    
+                    if MBHyb_labels[i] == 0:
+                        
+                        combined_labels[i] = 8
+                        
+                    elif MBHyb_labels[i] == 1:
+                        
+                        combined_labels[i] = 9
+                        
+                    else:
+                        
+                        combined_labels[i] = MB_labels[i]
+                
+                self.targets = combined_labels.astype(int).tolist()
+                
+            else:
+                
+                print('Invalid label choice. Please select either \'basic\' for default CRUMB labels, \'MB\' to prioritise MB labels in case of disagreement, or \'MBHyb\' to prioritise MBHyb labels in case of disagreement.')
+    
+# ---------------------------------------------------------------------------------
+
+class CRUMB_NoMB(CRUMB):
     
     """
     Child class to load only sources not found in MiraBest or MB Hybrid
     """
     
     def __init__(self, *args, **kwargs):
-        super(Not_MB, self).__init__(*args, **kwargs)
+        super(CRUMB_NoMB, self).__init__(*args, **kwargs)
         
         #Only include sources which register "not present" for both MB (column 0) and Hyb (column 3)
         
@@ -194,10 +575,57 @@ class Not_MB(CRUMB):
             full_labels = np.array(self.complete_labels)
             include = np.squeeze(np.where(np.logical_and(np.transpose(full_labels)[0] == -1, 
                                                          np.transpose(full_labels)[3] == -1)))
+            
             targets = np.array(self.targets)
             self.data = self.data[include]
-            self.targets = targets[include].tolist()
+            self.filenames = list(self.filenames[i] for i in include)
             self.complete_labels = full_labels[include].tolist()
+            
+            if self.labels == 'basic':
+                
+                self.targets = targets[include].tolist()
+            
+            elif self.labels == 'FRDEEP':
+                
+                FRDEEP_labels = np.transpose(full_labels)[1][include]
+                AT17_labels = np.transpose(full_labels)[2][include]
+                
+                combined_labels = np.zeros(len(include))
+                
+                for i in range(len(include)):
+                    
+                    if FRDEEP_labels[i] != -1:
+                        
+                        combined_labels[i] = FRDEEP_labels[i]
+                        
+                    else: 
+                        
+                        combined_labels[i] = AT17_labels[i]
+                
+                self.targets = combined_labels.astype(int).tolist()
+                
+            elif self.labels == 'AT17':
+                
+                FRDEEP_labels = np.transpose(full_labels)[1][include]
+                AT17_labels = np.transpose(full_labels)[2][include]
+                
+                combined_labels = np.zeros(len(include))
+                
+                for i in range(len(include)):
+                    
+                    if AT17_labels[i] != -1:
+                        
+                        combined_labels[i] = AT17_labels[i]
+                    
+                    else:
+                        
+                        combined_labels[i] = FRDEEP_labels[i]
+                
+                self.targets = combined_labels.astype(int).tolist()
+                
+            else:
+                
+                print('Invalid label choice. Please select either \'basic\' for default CRUMB labels, \'FRDEEP\' to prioritise FRDEEP labels in case of disagreement, or \'AT17\' to prioritise AT17 labels in case of disagreement.')
             
         else:
             
@@ -206,5 +634,114 @@ class Not_MB(CRUMB):
                                                       np.transpose(full_labels)[3] == -1)))
             targets = np.array(self.targets)
             self.data = self.data[include]
-            self.targets = targets[include].tolist()
+            self.filenames = list(self.filenames[i] for i in include)
             self.complete_labels = full_labels[include].tolist()
+            
+            if self.labels == 'basic':
+                
+                self.targets = targets[include].tolist()
+            
+            elif self.labels == 'FRDEEP':
+                
+                FRDEEP_labels = np.transpose(full_labels)[1][include]
+                AT17_labels = np.transpose(full_labels)[2][include]
+                
+                combined_labels = np.zeros(len(include))
+                
+                for i in range(len(include)):
+                    
+                    if FRDEEP_labels[i] != -1:
+                        
+                        combined_labels[i] = FRDEEP_labels[i]
+                        
+                    else: 
+                        
+                        combined_labels[i] = AT17_labels[i]
+                
+                self.targets = combined_labels.astype(int).tolist()
+                
+            elif self.labels == 'AT17':
+                
+                FRDEEP_labels = np.transpose(full_labels)[1][include]
+                AT17_labels = np.transpose(full_labels)[2][include]
+                
+                combined_labels = np.zeros(len(include))
+                
+                for i in range(len(include)):
+                    
+                    if AT17_labels[i] != -1:
+                        
+                        combined_labels[i] = AT17_labels[i]
+                    
+                    else:
+                        
+                        combined_labels[i] = FRDEEP_labels[i]
+                
+                self.targets = combined_labels.astype(int).tolist()
+                
+            else:
+                
+                print('Invalid label choice. Please select either \'basic\' for default CRUMB labels, \'FRDEEP\' to prioritise FRDEEP labels in case of disagreement, or \'AT17\' to prioritise AT17 labels in case of disagreement.')
+                
+# ---------------------------------------------------------------------------------
+
+class CRUMB_4Class(CRUMB):
+    
+    """
+    Child class to load basic label for a four-class system
+    Classes: 0 (FRI), 1 (FRII), 2 (Bent), 3 (Hybrid)
+    """
+    
+    def __init__(self, *args, **kwargs):
+        super(CRUMB_4Class, self).__init__(*args, **kwargs)
+        
+        #Change any hybrid source targets to 3
+        #Then find sources with labels 1, 2 or 4 in MB or 2 in AT17 and change their target to 2
+        
+        if self.train:
+            
+            full_labels = np.transpose(np.array(self.complete_labels))
+            hybrids = np.where(self.targets == 2)
+            conf_wat_sources = np.squeeze(np.where(full_labels[0] == 1))
+            conf_ht_sources = np.squeeze(np.where(full_labels[0] == 2))
+            unc_wat_sources = np.squeeze(np.where(full_labels[0] == 4))
+            at17_bent_sources = np.squeeze(np.where(full_labels[2] == 2))
+            
+            updated_targets = np.array(self.targets)
+            updated_targets[hybrids] = 3
+            updated_targets[conf_wat_sources] = 2
+            updated_targets[conf_ht_sources] = 2
+            updated_targets[unc_wat_sources] = 2
+            
+            for i in range(len(at17_bent_sources)):
+                
+                if full_labels[0][at17_bent_sources[i]] == -1:
+                    
+                    updated_targets[at17_bent_sources[i]] = 2
+            
+            self.targets = updated_targets.astype(int).tolist()
+            
+        else:
+            
+            full_labels = np.transpose(np.array(self.complete_labels))
+            hybrids = np.where(self.targets == 2)
+            conf_wat_sources = np.squeeze(np.where(full_labels[0] == 1))
+            conf_ht_sources = np.squeeze(np.where(full_labels[0] == 2))
+            unc_wat_sources = np.squeeze(np.where(full_labels[0] == 4))
+            at17_bent_sources = np.squeeze(np.where(full_labels[2] == 2))
+            
+            updated_targets = np.array(self.targets)
+            updated_targets[hybrids] = 3
+            updated_targets[conf_wat_sources] = 2
+            updated_targets[conf_ht_sources] = 2
+            updated_targets[unc_wat_sources] = 2
+            
+            for i in range(len(at17_bent_sources)):
+                
+                if full_labels[0][at17_bent_sources[i]] == -1:
+                    
+                    updated_targets[at17_bent_sources[i]] = 2
+            
+            self.targets = updated_targets.astype(int).tolist()
+            
+# ---------------------------------------------------------------------------------
